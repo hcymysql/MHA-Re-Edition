@@ -1,2 +1,2 @@
 # MHA-Re-Edition
-MySQL (MHA)重构版
+MySQL (MHA)重构版，编码中......
