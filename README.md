@@ -10,7 +10,7 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 
 3）无需安装，就两个文件，一个是（环境配置检查）可执行文件masterha_check_repl_mysql，一个是（故障自动转移auto failover和在线平滑切换switch）可执行文件masterha_manager_mysql
 
-### 配置文件
+### 配置文件（请按照以下格式严丝合缝去设置）
 
 #### app1.cnf
 
@@ -85,3 +85,9 @@ ssh_user = root
 ssh_port = 22
 
 ssh_password = 123456
+
+### 环境配置检查
+
+###### shell> chmod 755 masterha_check_repl_mysql
+###### shell> ./masterha_check_repl_mysql --conf=app1.cnf
+
