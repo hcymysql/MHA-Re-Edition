@@ -33,9 +33,7 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 
 如果你没有在cnf配置文件里设置candidate_master = 1，则根据从库执行的Gtid事件最新的将其提升为主库。
 
-3）当从库出现延迟时，在cnf配置文件里，超过参数running_updates_limit = 60 单位（秒）内，且未同步完数据，则强制开启VIP故障切换转移，并在log日志中输出warning警告信息。
-
-否则会一直等待60秒内执行完从库的Gtid事件。
+3）当从库出现延迟时，在cnf配置文件里，超过参数running_updates_limit = 60 单位（秒）内，且未同步完数据，则强制开启VIP故障切换转移，并在log日志中输出warning警告信息。否则会一直等待60秒内执行完从库的Gtid事件。
 
 4）其他从库会change master to改变同步源为候选主库，并在log日志中输出show master status新主库的状态信息。
 
