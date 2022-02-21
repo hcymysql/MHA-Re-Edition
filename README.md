@@ -23,7 +23,7 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 
 ### 故障切换的步骤：
 
-1）MHA Re-Edition管理机每隔N秒，去连接主库，当试图连接3次失败后，尝试去其他从库上去连接并执行select 1探测，这里需要你在cnf配置文件里设置masterha_secondary_check = slave1,slave2
+1）MHA Re-Edition管理机每隔cnf配置文件参数connect_interval=1（秒），去连接主库，当试图连接3次失败后，尝试去其他从库上去连接并执行select 1探测，这里需要你在cnf配置文件里设置masterha_secondary_check = slave1,slave2
 
 设置完后，slave1和slave2去连接，如果有一台从库可以连接到主库，不认定主库down掉，不进行故障转移操作，会在log日志中输出warning警告信息，提示网络有问题，请排查。
 
