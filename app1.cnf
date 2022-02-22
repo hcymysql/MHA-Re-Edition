@@ -1,0 +1,44 @@
+[DEFAULT]
+# log日志输出文件
+manager_workdir = /root/mha_log/app1.log
+
+vip = 172.19.136.200
+interface = bond0
+
+# 监控间隔时间，单位秒
+connect_interval=1
+
+# 开启调用其他从库去连接主库，如果不需要，则删除masterha_secondary_check这行内容
+# 脚本会调用从库的mysql命令，默认读取路径是/usr/bin/mysql（已经写死在脚本里），如没有请创建一个软连接
+masterha_secondary_check = 172.19.136.33,172.19.136.34
+
+# 当从库出现延迟时，超过60秒内未同步完数据，强制开启VIP故障切换转移
+running_updates_limit = 60
+
+[server1]
+ip = 172.19.136.32
+port = 3306
+user = repl
+password = sysrepl
+ssh_user = root
+ssh_port = 22
+ssh_password = 123456
+
+[server2]
+ip = 172.19.136.33
+port = 3307
+user = repl
+password = sysrepl
+ssh_user = root
+ssh_port = 22
+ssh_password = 123456
+candidate_master = 1
+
+[server3]
+ip = 172.19.136.34
+port = 3308
+user = repl
+password = sysrepl
+ssh_user = root
+ssh_port = 22
+ssh_password = 123456
