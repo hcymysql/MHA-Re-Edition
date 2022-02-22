@@ -10,9 +10,9 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 
 3）无需安装，就两个文件，一个是（环境配置检查）可执行文件masterha_check_repl_mysql，一个是（故障自动转移auto failover和在线平滑切换switch）可执行文件masterha_manager_mysql
 
-4) 基于主从复制（Gtid复制模式）才可以运行，masterha_check_repl_mysql工具会检测，如果是基于binlog和position（位置点复制模式）不能运行。
+4）基于主从复制（Gtid复制模式）才可以运行，masterha_check_repl_mysql工具会检测，如果是基于binlog和position（位置点复制模式）不能运行。
 
-5) AutoFailover自动故障转移VIP后，增加微信公众号报警通知（待完成）
+5）AutoFailover自动故障转移VIP后，增加微信公众号报警通知（待完成）
 
 ### 配置文件（请按照app1.cnf范例模板严丝合缝的去设置）
 
