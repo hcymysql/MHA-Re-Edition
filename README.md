@@ -25,6 +25,7 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 ### 开启守护进程，主库故障后，VIP自动故障转移，其他从库自动change master to 指向新主库
 ###### shell> chmod 755 masterha_manager_mysql
 ###### shell> ./masterha_manager_mysql --conf=app1.cnf start
+（注：指定不同的配置文件，可以支持监控多套MySQL主从复制架构）
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/masterha_manager_mysql.png)
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_re_edition_ok.png)
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_re_edition_failover.png)
