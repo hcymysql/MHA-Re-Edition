@@ -53,6 +53,7 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 7）漂移VIP至新的主库。至此故障转移流程跑完。
 
 ### 二、在线平滑切换Online master switch步骤：
+###### shell> ./masterha_manager_mysql --conf=app1.cnf switch
 
 1)首先检测当前存活主机master(172.19.136.32:3306)、slave1(172.19.136.33:3307)和slave2(172.19.136.34:3308)
 
@@ -83,4 +84,4 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 14) 将VIP切换到新提升的master上
  
 15）整个切换流程结束。
-
+![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_re_edition_online_switch.png)
