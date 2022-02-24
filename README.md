@@ -18,13 +18,13 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 
 ### 环境配置检查
 
-###### shell> chmod 755 masterha_check_repl_mysql
-###### shell> ./masterha_check_repl_mysql --conf=app1.cnf
-![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/masterha_check_repl_mysql.png)
+#### shell> chmod 755 masterha_check_repl_mysql
+#### shell> ./masterha_check_repl_mysql --conf=app1.cnf
+![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/masterha_manager_mysql_usage.png)
 
 ### 开启守护进程，主库故障后，VIP自动故障转移，其他从库自动change master to 指向新主库
-###### shell> chmod 755 masterha_manager_mysql
-###### shell> ./masterha_manager_mysql --conf=app1.cnf start
+#### shell> chmod 755 masterha_manager_mysql
+#### shell> ./masterha_manager_mysql --conf=app1.cnf start
 （注：指定不同的配置文件，可以支持监控多套MySQL主从复制架构）
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/masterha_manager_mysql.png)
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_re_edition_ok.png)
@@ -53,7 +53,7 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 7）漂移VIP至新的主库。至此故障转移流程跑完。
 
 ### 二、在线平滑切换Online master switch步骤：
-###### shell> ./masterha_manager_mysql --conf=app1.cnf switch
+#### shell> ./masterha_manager_mysql --conf=app1.cnf switch
 
 1)首先检测当前存活主机master(172.19.136.32:3306)、slave1(172.19.136.33:3307)和slave2(172.19.136.34:3308)
 
