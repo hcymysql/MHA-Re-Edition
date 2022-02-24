@@ -30,7 +30,7 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_re_edition_ok.png)
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_re_edition_failover.png)
 
-### 故障切换的步骤：
+### 一、故障切换的步骤：
 
 1）MHA Re-Edition管理机每隔app1.cnf配置文件参数connect_interval=1（秒），去连接主库，当试图连接3次失败后，尝试去其他从库上去连接并执行select 1探测，这里需要你在app1.cnf配置文件里设置masterha_secondary_check = slave1,slave2
 
@@ -51,3 +51,36 @@ MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不�
 6）候选主库不执行reset slave all清空同步信息，这一步操作交给用户处理。
 
 7）漂移VIP至新的主库。至此故障转移流程跑完。
+
+### 二、在线平滑切换Online master switch步骤：
+
+1) 首先检测当前存活主机master(172.19.136.32:3306)、slave1(172.19.136.33:3307)和slave2(172.19.136.34:3308)
+
+2) 输入YES后，在原master上执行FLUSH NO_WRITE_TO_BINLOG TABLES操作，将会强制把打开的表关闭，这一步会耗费很长时间，尤其是业务繁忙的时候，请务必在凌晨执行。
+
+3) 之后会询问是否要把master(172.19.136.32:3306) 切换到(172.19.136.33:3307)？输入yes
+
+4）将原master上的虚拟VIP摘除。
+
+5）设置原master为只读模式set global read_only=1
+
+6）原master上KILL掉所有应用连接的线程。
+
+7）原master上执行FLUSH TABLES WITH READ LOCK全局读锁。
+
+8）在候选master上执行 select SELECT WAIT_FOR_EXECUTED_GTID_SET(master_gtid_executed, timeout)，等待执行完Gtid事件。当候选主库出现延迟时，在app1.cnf配置文件里，超过参数running_updates_limit = 60 单位（秒）内，且未同步完数据，则强制开启VIP切换转移，并在log日志中输出warning警告信息。否则会一直等待60秒内执行完从库的Gtid事件。
+
+9）新提升的master为读写模式set global read_only=0
+
+10）在slave2上，执行CHANGE MASTER TO new_master
+
+11）在原master上解除锁表UNLOCK TABLES
+
+12）在原master上，执行CHANGE MASTER TO new_master
+
+13）新提升的master上，执行stop slave; 不执行reset slave all清空同步信息，这一步操作交给用户处理。
+
+14) 将VIP切换到新提升的master上
+ 
+15）整个切换流程结束。
+
