@@ -16,7 +16,7 @@ masterha_secondary_check = 172.19.136.33,172.19.136.34
 running_updates_limit = 60
 
 # 设置主库故障切换后触发微信报警（wechar.py和masterha_manager_mysql文件放在同一目录下）
-weixin_alarm = /usr/bin/python wechat.py hcymysql
+weixin_alarm = /usr/bin/python wechat.py yourweixin
 
 [server1]
 ip = 172.19.136.32
