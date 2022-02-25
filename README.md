@@ -34,7 +34,6 @@ https://www.cnblogs.com/EricDing/p/8995263.html
 #### shell> ./masterha_manager_mysql --conf=app1.cnf start
 （注：指定不同的配置文件，可以支持监控多套MySQL主从复制架构）
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/masterha_manager_mysql_usage.png)
-![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/masterha_manager_mysql.png)
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_re_edition_ok.png)
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_re_edition_failover.png)
 
