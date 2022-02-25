@@ -25,6 +25,9 @@ weixin_alarm = /usr/bin/python wechat.py yourweixin
 [server1]
 ip = 172.19.136.32
 port = 3306
+# repl用户最小权限是：
+# GRANT SELECT, RELOAD, PROCESS, SUPER, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `repl`@`%`
+# GRANT FLUSH_TABLES,SYSTEM_USER ON *.* TO `repl`@`%`
 user = repl
 password = sysrepl
 ssh_user = root
