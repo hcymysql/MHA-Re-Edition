@@ -69,6 +69,7 @@ https://www.cnblogs.com/EricDing/p/8995263.html
 3)之后会询问是否要把master(172.19.136.32:3306) 切换到(172.19.136.33:3307)？输入yes
 
 (如果在app1.cnf配置文件里设置candidate_master = 1，指定了候选主库，则默认提升该新主库。
+
 如果没有在app1.cnf配置文件里设置candidate_master = 1，则根据从库执行的Gtid事件最新的将其提升为主库。)
 
 4）将原master上的虚拟VIP摘除。
