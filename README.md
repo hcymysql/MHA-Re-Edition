@@ -20,6 +20,9 @@
 7）支持远控卡重启服务器(避免脑裂问题)。例如删除VIP失败，主机已经hang住，只能通过远程管理卡去重启机器。在这里你可以调用远控卡命令，比如DELL服务器的ipmitool命令​
 https://www.cnblogs.com/EricDing/p/8995263.html
 
+# Online Switch平滑在线切换-演示
+
+https://www.douyin.com/video/7068576205892570398?modeFrom=userPost&secUid=MS4wLjABAAAAc6WnvNgEBIr5V2lbGEDBf3IZ2hyvoQ9FtPdGLgOSXrw
 
 ### 配置文件（请按照app1.cnf范例模板严丝合缝的去设置）
 
