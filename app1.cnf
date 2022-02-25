@@ -15,6 +15,10 @@ masterha_secondary_check = 172.19.136.33,172.19.136.34
 # 当从库出现延迟时，超过60秒内未同步完数据，强制开启VIP故障切换转移
 running_updates_limit = 60
 
+# ipmitool -I lanplus -H 远控卡主库IP -U 远程console用户 -P 远程console密码 power reset
+# 如果不需要，则删除shutdown_script这行内容
+shutdown_script = ipmitool -I lanplus -H 172.31.198.239 -U root -P calvin power reset
+
 # 设置主库故障切换后触发微信报警（wechar.py和masterha_manager_mysql文件放在同一目录下）
 weixin_alarm = /usr/bin/python wechat.py yourweixin
 
