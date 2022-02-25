@@ -1,20 +1,24 @@
-# MHA-Re-Edition 
+# MHA-Re-Edition 复刻版简介
 
-MySQL (MHA)重构版，由于MHA工具2018年已经停止维护更新，且不支持Gtid复制模式，固考虑将其重构。
+由于MHA（mha4mysql-manager）工具2018年已经停止维护更新，且不支持Gtid复制模式，在原版基础上增补功能难度较大，固考虑将其重构。
 
-参考了MHA的故障切换思路，改进的地方有：
+参考了原版MHA的故障切换思路，改进的地方如下：
 
 1）无需打通ssh公私钥互信认证，只需在app1.cnf配置文件里提供用户名和密码（root权限）即可，这一步的作用是漂移VIP，工具会直接进入远程主机上执行ip addr add VIP
 
 2）目前主流版本MySQL 5.7和8.0的复制模式是基于Gtid，因事务号是唯一的，更改同步复制源不需要知道binlog文件名和position位置点，固简化了在客户端部署agent做数据补齐。
 
-3）无需安装，就两个文件，一个是（环境配置检查）可执行文件masterha_check_repl_mysql，一个是（故障自动转移auto failover和在线平滑切换switch）可执行文件masterha_manager_mysql
+3）无需安装，就两个文件，一个是（环境配置检查）可执行文件masterha_check_repl_mysql，一个是（故障自动转移autofailover和在线平滑切换online switch）可执行文件masterha_manager_mysql
 
-4）基于主从复制（Gtid复制模式）才可以运行，masterha_check_repl_mysql工具会检测，如果是基于binlog和position（位置点复制模式）不能运行。
+4 ) 基于主从复制（Gtid复制模式）才可以运行，masterha_check_repl_mysql工具会检测，如果是基于binlog和position（位置点复制模式）不能运行。可开启半同步复制确保切换以后数据完整性（至少有一个从库确认已接收到所有事件）。
 
-5）AutoFailover自动故障转移VIP后，增加微信公众号报警通知（待完成）
+5 ) masterha_manager_mysql守护进程主控文件，集成了
+（masterha_master_switch + master_ip_failover + masterha_secondary_check + shutdown_script + weixin_alarm）捆绑在一起
 
-6)支持远控卡重启服务器(避免脑裂问题)。例如删除VIP失败，主机已经hang住，只能通过远程管理卡去重启机器.在这里你可以调用远控卡命令，比如DELL服务器的ipmitool命令
+6）AutoFailover自动故障切换（转移）VIP后，会发送微信公众号报警通知​
+
+7）支持远控卡重启服务器(避免脑裂问题)。例如删除VIP失败，主机已经hang住，只能通过远程管理卡去重启机器。在这里你可以调用远控卡命令，比如DELL服务器的ipmitool命令​
+https://www.cnblogs.com/EricDing/p/8995263.html
 
 
 ### 配置文件（请按照app1.cnf范例模板严丝合缝的去设置）
