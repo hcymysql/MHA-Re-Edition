@@ -20,7 +20,7 @@
 7）支持远控卡重启服务器(避免脑裂问题)。例如删除VIP失败，主机已经hang住，只能通过远程管理卡去重启机器。在这里你可以调用远控卡命令，比如DELL服务器的ipmitool命令​
 https://www.cnblogs.com/EricDing/p/8995263.html
 
-8）增补对MariaDB Gtid的支持（待完成）
+8）增补对MariaDB Gtid的支持
 
 ### 注：工具运行适用于Centos7系统上
 
