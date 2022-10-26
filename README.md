@@ -111,9 +111,9 @@ https://www.douyin.com/video/7068576205892570398?modeFrom=userPost&secUid=MS4wLj
 ----------------------------------------------------------------------------------------------------
 # 守护进程:挂掉后自动拉起
 
-cd  /usr/lib/systemd/system
+shell> cd /usr/lib/systemd/system
 
-touch hh_phone.service
+shell> touch hh_phone.service
 
 ```
 [Unit]
@@ -131,9 +131,9 @@ RestartSec=2
 WantedBy=multi-user.target
 ```
 
-systemctl start hh_phone.service.service
+shell> systemctl start hh_phone.service
 
-systemctl stop hh_phone.service.service
+shell> systemctl stop hh_phone.service
 
-systemctl enable hh_phone.service.service
+shell> systemctl enable hh_phone.service
 
