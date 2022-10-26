@@ -107,3 +107,33 @@ https://www.douyin.com/video/7068576205892570398?modeFrom=userPost&secUid=MS4wLj
  
 15）整个切换流程结束。
 ![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_re_edition_online_switch.png)
+
+----------------------------------------------------------------------------------------------------
+# 守护进程:挂掉后自动拉起
+
+cd  /usr/lib/systemd/system
+
+touch hh_phone.service
+
+```
+[Unit]
+Description=MHA hh_phone Process Restart Script
+After=network.target
+[Service]
+User=root
+TimeoutStartSec=0
+Type=simple
+KillMode=none
+ExecStart=/data/MHA-Re-Edition-main/masterha_manager_mysql --conf=/etc/mha/hh_phone.cnf start
+Restart=on-failure
+RestartSec=2
+[Install]
+WantedBy=multi-user.target
+```
+
+systemctl start hh_phone.service.service
+
+systemctl stop hh_phone.service.service
+
+systemctl enable hh_phone.service.service
+
