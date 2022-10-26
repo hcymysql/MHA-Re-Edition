@@ -133,7 +133,7 @@ WantedBy=multi-user.target
 
 shell> systemctl start hh_phone.service
 
-shell> systemctl stop hh_phone.service
+shell> systemctl status hh_phone.service
 
 shell> systemctl enable hh_phone.service
 
