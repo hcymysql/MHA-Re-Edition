@@ -469,9 +469,13 @@ def MasterMonitor(cnf_file):
                     # 先试图去把主库的VIP给卸载掉
                     mask = "24"
                     del_vip_cmd = "/usr/sbin/ip addr del " + vip + "/" + mask + " dev " + interface
-                    status = vipobj.ssh_exec(current_master_ssh_info[0], current_master_ssh_info[1],
+                    try:
+                        status = vipobj.ssh_exec(current_master_ssh_info[0], current_master_ssh_info[1],
                                              current_master_ssh_info[2], current_master_ssh_info[3],
                                              del_vip_cmd)
+                    except Exception as e:
+                        print('\x1b[1;31m主库：%s 无法ping通!!! \x1b[0m' % current_master[0])
+
                     if status == 0:
                         logging.info('\033[0;37;42m执行命令: {0} 成功删除该VIP地址. \033[0m'.format(del_vip_cmd))
                     else:
@@ -480,7 +484,8 @@ def MasterMonitor(cnf_file):
                                # 重启电源\n \
                                 shell> ipmitool -I lanplus -H 服务器IP -U 远程console用户 -P 远程console密码 power reset \
                         \033[0m')
-                        os.system(shutdown_script)
+                        if shutdown_script is not None:
+                            os.system(shutdown_script)
 
                     # 第七步，选举一个候选主库
                     # 如果用户在配置文件里指定了候选主库，那则以该台主机作为故障切换后的新主库
