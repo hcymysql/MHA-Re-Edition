@@ -213,7 +213,7 @@ class MasterFailover(object):
         return True
 
 ######################################################################
-# end class VipManager
+# end class MasterFailover
 ######################################################################
 
 class VipManager:
