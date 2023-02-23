@@ -1,7 +1,7 @@
 import os, sys, re, logging, configparser, atexit, signal
 import pymysql, paramiko
 from pymysql.constants import CLIENT
-from masterha_check_repl_mariadb import Config_Parser, MySQL_Check
+from masterha_check_repl_mariadb import Config_Parser, MariaDB_Check
 
 
 class MasterFailover(object):
@@ -35,11 +35,11 @@ class MasterFailover(object):
 
         return slave_status_dict
 
-    def elect_new_master(self,master_gtid_executed, slave_gtid_executed):
+    def elect_new_master(self):
         self._connection = pymysql.connect(host=self._host, port=self._port, user=self._user, passwd=self._password)
         cursor = self._connection.cursor()
         try:
-            gtid_sql = 'SELECT GTID_SUBTRACT(\'{0}\' , \'{1}\')'.format(master_gtid_executed, slave_gtid_executed)
+            gtid_sql = 'select @@global.gtid_current_pos'
             cursor.execute(gtid_sql)
             gtid_result = cursor.fetchone()
         except pymysql.Error as e:
@@ -53,7 +53,7 @@ class MasterFailover(object):
         self._connection = pymysql.connect(host=self._host, port=self._port, user=self._user, passwd=self._password)
         cursor = self._connection.cursor()
         try:
-            wait_gtid_finish_sql = 'SELECT WAIT_FOR_EXECUTED_GTID_SET(\'{0}\' , {1})'.format(master_gtid_executed, timeout)
+            wait_gtid_finish_sql = 'SELECT MASTER_GTID_WAIT(\'{0}\' , {1})'.format(master_gtid_executed, timeout)
             cursor.execute(wait_gtid_finish_sql)
             wait_gtid_result = cursor.fetchone()
         except pymysql.Error as e:
@@ -67,7 +67,7 @@ class MasterFailover(object):
         self._connection = pymysql.connect(host=self._host, port=self._port, user=self._user, passwd=self._password)
         cursor = self._connection.cursor()
         try:
-            cursor.execute('SET GLOBAL SUPER_READ_ONLY = 0')
+            cursor.execute('SET GLOBAL READ_ONLY = 0')
         except pymysql.Error as e:
             print("Error %d: %s" % (e.args[0], e.args[1]))
             return False
@@ -79,7 +79,7 @@ class MasterFailover(object):
         self._connection = pymysql.connect(host=self._host, port=self._port, user=self._user, passwd=self._password)
         cursor = self._connection.cursor()
         try:
-            cursor.execute('SET GLOBAL SUPER_READ_ONLY = 1')
+            cursor.execute('SET GLOBAL READ_ONLY = 1')
         except pymysql.Error as e:
             print("Error %d: %s" % (e.args[0], e.args[1]))
             return False
@@ -100,11 +100,24 @@ class MasterFailover(object):
 
         return show_master_status_dict
 
+    def get_new_master_gtid_status(self):
+        self._connection = pymysql.connect(host=self._host, port=self._port, user=self._user, passwd=self._password)
+        cursor = self._connection.cursor()
+        try:
+            cursor.execute('select @@global.gtid_binlog_pos, @@global.gtid_current_pos')
+            show_master_gtid_list = cursor.fetchone()
+        except pymysql.Error as e:
+            print("Error %d: %s" % (e.args[0], e.args[1]))
+        finally:
+            cursor.close()
+
+        return show_master_gtid_list
+
     def slave_change_master_to(self, new_master_ip, new_master_port):
         self._connection = pymysql.connect(host=self._host, port=self._port, user=self._user, passwd=self._password, client_flag=CLIENT.MULTI_STATEMENTS)
         cursor = self._connection.cursor()
         try:
-            change_sql = 'STOP SLAVE; CHANGE MASTER TO MASTER_HOST=\'{0}\', MASTER_PORT={1}, MASTER_AUTO_POSITION = 1; START SLAVE' .format(new_master_ip, new_master_port)
+            change_sql = 'STOP SLAVE; CHANGE MASTER TO MASTER_HOST=\'{0}\', MASTER_PORT={1}, master_use_gtid = current_pos; START SLAVE' .format(new_master_ip, new_master_port)
             cursor.execute(change_sql)
         except pymysql.Error as e:
             print("Error %d: %s" % (e.args[0], e.args[1]))
@@ -119,7 +132,7 @@ class MasterFailover(object):
         cursor = self._connection.cursor()
         try:
             change_sql = 'STOP SLAVE; CHANGE MASTER TO MASTER_HOST=\'{0}\', MASTER_USER=\'{1}\', MASTER_PASSWORD=\'{' \
-                         '2}\', MASTER_PORT={3}, MASTER_AUTO_POSITION = 1; START SLAVE' \
+                         '2}\', MASTER_PORT={3}, master_use_gtid = current_pos; START SLAVE' \
                          .format(new_master_ip, new_master_user, new_master_password, new_master_port)
             cursor.execute(change_sql)
         except pymysql.Error as e:
@@ -213,7 +226,7 @@ class MasterFailover(object):
         return True
 
 ######################################################################
-# end class MasterFailover
+# end class VipManager
 ######################################################################
 
 class VipManager:
@@ -351,7 +364,7 @@ def MasterMonitor(cnf_file):
             ip, port, user, password, ssh_user, ssh_password, ssh_port = i
         else:
             ip, port, user, password, ssh_user, ssh_password, ssh_port, candidate_master = i
-        mysql_conn = MySQL_Check(host=ip, port=port, user=user, password=password)
+        mysql_conn = MariaDB_Check(host=ip, port=port, user=user, password=password)
         # master_status, master_info, slave_info, multi_tier_slave_info = mysql_conn.chek_repl_status()
         master_info, slave_info = mysql_conn.chek_repl_status()
 
@@ -505,32 +518,31 @@ def MasterMonitor(cnf_file):
                         for s in current_slave:
                             mysql_conn2 = MasterFailover(s[0], s[1], s[2], s[3])
                             slave_status_dict = mysql_conn2.get_slave_status()
-                            master_gtid_executed = slave_status_dict['Retrieved_Gtid_Set'].replace('\n','')
-                            slave_gtid_executed = slave_status_dict['Executed_Gtid_Set'].replace('\n','')
-                            gtid_result = mysql_conn2.elect_new_master(master_gtid_executed,slave_gtid_executed)
-                            for i in gtid_result:
-                                if i is None:
-                                    i = 0
-                                    new_master_info = [i, s[0], s[1]]
+                            master_gtid_executed = slave_status_dict['Gtid_IO_Pos'].replace('\n','')
+                            #slave_gtid_executed = slave_status_dict['Executed_Gtid_Set'].replace('\n','')
+                            gtid_result = mysql_conn2.elect_new_master()
+                            for mariadb_gtid in gtid_result:
+                                if mariadb_gtid == master_gtid_executed:
+                                    new_master_info.append([0, mariadb_gtid, s[0], s[1]])
                                 else:
-                                    new_master_info.append([len(i), s[0], s[1]])
+                                    new_master_info.append([-1, mariadb_gtid, s[0], s[1]])
                         tmp_count = 0
                         for i in new_master_info:
                             count = i.count(0)
                             tmp_count = tmp_count + count
                         if tmp_count >= 2:
                             # 如果同步复制都执行完，则取配置文件里server最靠前的主机作为候选主库
-                            new_master_candidate = [new_master_info[0][1], new_master_info[0][2]]
+                            new_master_candidate = [new_master_info[0][2], new_master_info[0][3]]
                             logging.info('新的主库候选人是 ==> : {0}:{1}'. format(new_master_candidate[0], new_master_candidate[1]))
                         else:
                             new_master_info_sort = sorted(new_master_info, reverse=True)
                             new_master_candidate_tmp = new_master_info_sort[0]
-                            new_master_candidate = [new_master_candidate_tmp[1], new_master_candidate_tmp[2]]
+                            new_master_candidate = [new_master_candidate_tmp[2], new_master_candidate_tmp[3]]
                             logging.info('新的主库候选人是 ==> : {0}:{1}'. format(new_master_candidate[0], new_master_candidate[1]))
 
                     other_slave = new_master = []
                     for cs in current_slave:
-                        if new_master_candidate[0] != cs[0] or new_master_candidate[1] != cs[1]:
+                        if new_master_candidate[0] != cs[0] and new_master_candidate[1] != cs[1]:
                             other_slave.append(cs)
                     for nm in current_slave:
                         if new_master_candidate[0] == nm[0] and new_master_candidate[1] == nm[1]:
@@ -553,14 +565,14 @@ def MasterMonitor(cnf_file):
                         mysql_conn_wait = MasterFailover(new_master_candidate_ssh_info[0], new_master_candidate_ssh_info[1],
                                                          new_master_candidate_ssh_info[2], new_master_candidate_ssh_info[3])
                         slave_status_dict = mysql_conn_wait.get_slave_status()
-                        master_gtid_executed = slave_status_dict['Retrieved_Gtid_Set'].replace('\n', '')
+                        master_gtid_executed = slave_status_dict['Gtid_IO_Pos'].replace('\n', '')
                         timeout = running_updates_limit
                         wait_gtid_result = mysql_conn_wait.Wait_for_executed_GTID(master_gtid_executed, timeout)
                     else:
                         mysql_conn_wait = MasterFailover(new_master[0], new_master[1],
                                                          new_master[2], new_master[3])
                         slave_status_dict = mysql_conn_wait.get_slave_status()
-                        master_gtid_executed = slave_status_dict['Retrieved_Gtid_Set'].replace('\n', '')
+                        master_gtid_executed = slave_status_dict['Gtid_IO_Pos'].replace('\n', '')
                         timeout = running_updates_limit
                         wait_gtid_result = mysql_conn_wait.Wait_for_executed_GTID(master_gtid_executed, timeout)
                     for i in wait_gtid_result:
@@ -575,15 +587,18 @@ def MasterMonitor(cnf_file):
                     # 第九步，得到新主库的show master staus信息
                     mysql_conn_new_master = MasterFailover(new_master[0], new_master[1], new_master[2], new_master[3])
                     new_master_candidate_status_dict = mysql_conn_new_master.get_new_master_candidate_status()
+                    show_master_gtid_list = mysql_conn_new_master.get_new_master_gtid_status()
                     logging.info('新主库{0}:{1} show master status信息是：'. format(new_master[0], new_master[1]))
                     logging.info('File: {0}'. format(new_master_candidate_status_dict['File']))
                     logging.info('Position: {0}'. format(new_master_candidate_status_dict['Position']))
                     logging.info('Binlog_Do_DB: {0}'. format(new_master_candidate_status_dict['Binlog_Do_DB']))
                     logging.info('Binlog_Ignore_DB: {0}'. format(new_master_candidate_status_dict['Binlog_Ignore_DB']))
-                    logging.info('Executed_Gtid_Set: {0}'. format(new_master_candidate_status_dict['Executed_Gtid_Set'].replace('\n', '')))
+                    logging.info('gtid_binlog_pos: {0}'. format(show_master_gtid_list[0]))
+                    logging.info('gtid_current_pos: {0}'. format(show_master_gtid_list[1]))
+                    #logging.info('Executed_Gtid_Set: {0}'. format(new_master_candidate_status_dict['Executed_Gtid_Set'].replace('\n', '')))
                     logging.info('你应该复制这句命令，在源主库恢复后，执行它并重新加入新集群里。')
                     logging.info('STOP SLAVE; CHANGE MASTER TO MASTER_HOST=\'{0}\', MASTER_USER=\'{1}\', MASTER_PASSWORD=\'{2}\', '
-                                 'MASTER_PORT={3}, MASTER_AUTO_POSITION=1; START SLAVE;'
+                                 'MASTER_PORT={3}, master_use_gtid=current_pos; START SLAVE;'
                                  . format(new_master[0], new_master[2], new_master[3], new_master[1]))
 
                     # 第十步，改变同步复制源，change master to指向新的主库
@@ -662,7 +677,7 @@ def Online_Switch(cnf_file):
             ip, port, user, password, ssh_user, ssh_password, ssh_port = i
         else:
             ip, port, user, password, ssh_user, ssh_password, ssh_port, candidate_master = i
-        mysql_conn = MySQL_Check(host=ip, port=port, user=user, password=password)
+        mysql_conn = MariaDB_Check(host=ip, port=port, user=user, password=password)
         # master_status, master_info, slave_info, multi_tier_slave_info = mysql_conn.chek_repl_status()
         master_info, slave_info = mysql_conn.chek_repl_status()
 
@@ -717,39 +732,38 @@ def Online_Switch(cnf_file):
         mysql_conn2 = MasterFailover(new_master_candidate_ssh_info[0], new_master_candidate_ssh_info[1],
                                      new_master_candidate_ssh_info[2], new_master_candidate_ssh_info[3])
         slave_status_dict = mysql_conn2.get_slave_status()
-        master_gtid_executed = slave_status_dict['Retrieved_Gtid_Set'].replace('\n', '')
+        master_gtid_executed = slave_status_dict['Gtid_IO_Pos'].replace('\n', '')
     else:
         logging.info('没有在配置文件里找到candidate_master=1参数，则以最新的Gtid作为故障切换后的新主库\n')
         new_master_info = []
         for s in current_slave:
             mysql_conn2 = MasterFailover(s[0], s[1], s[2], s[3])
             slave_status_dict = mysql_conn2.get_slave_status()
-            master_gtid_executed = slave_status_dict['Retrieved_Gtid_Set'].replace('\n', '')
-            slave_gtid_executed = slave_status_dict['Executed_Gtid_Set'].replace('\n', '')
-            gtid_result = mysql_conn2.elect_new_master(master_gtid_executed, slave_gtid_executed)
-            for i in gtid_result:
-                if i is None:
-                    i = 0
-                    new_master_info = [i, s[0], s[1]]
+            master_gtid_executed = slave_status_dict['Gtid_IO_Pos'].replace('\n', '')
+            #slave_gtid_executed = slave_status_dict['Executed_Gtid_Set'].replace('\n', '')
+            gtid_result = mysql_conn2.elect_new_master()
+            for mariadb_gtid in gtid_result:
+                if mariadb_gtid == master_gtid_executed:
+                    new_master_info.append([0, mariadb_gtid, s[0], s[1]])
                 else:
-                    new_master_info.append([len(i), s[0], s[1]])
+                    new_master_info.append([-1, mariadb_gtid, s[0], s[1]])
         tmp_count = 0
         for i in new_master_info:
             count = i.count(0)
             tmp_count = tmp_count + count
         if tmp_count >= 2:
             # 如果同步复制都执行完，则取配置文件里server最靠前的主机作为候选主库
-            new_master_candidate = [new_master_info[0][1], new_master_info[0][2]]
+            new_master_candidate = [new_master_info[0][2], new_master_info[0][3]]
             logging.info('新的主库候选人是 ==> : {0}:{1}'.format(new_master_candidate[0], new_master_candidate[1]))
         else:
             new_master_info_sort = sorted(new_master_info, reverse=True)
             new_master_candidate_tmp = new_master_info_sort[0]
-            new_master_candidate = [new_master_candidate_tmp[1], new_master_candidate_tmp[2]]
+            new_master_candidate = [new_master_candidate_tmp[2], new_master_candidate_tmp[3]]
             logging.info('新的主库候选人是 ==> : {0}:{1}'.format(new_master_candidate[0], new_master_candidate[1]))
 
     other_slave = new_master = []
     for cs in current_slave:
-        if new_master_candidate[0] != cs[0] or new_master_candidate[1] != cs[1]:
+        if new_master_candidate[0] != cs[0] and new_master_candidate[1] != cs[1]:
             other_slave.append(cs)
     for nm in current_slave:
         if new_master_candidate[0] == nm[0] and new_master_candidate[1] == nm[1]:
@@ -847,12 +861,15 @@ def Online_Switch(cnf_file):
     # 第七步，得到候选主库的show master staus信息
     mysql_conn_new_master = MasterFailover(new_master[0], new_master[1], new_master[2], new_master[3])
     new_master_candidate_status_dict = mysql_conn_new_master.get_new_master_candidate_status()
+    show_master_gtid_list = mysql_conn_new_master.get_new_master_gtid_status()
     logging.info('新主库{0}:{1} show master status信息是：'.format(new_master[0], new_master[1]))
     logging.info('File: {0}'.format(new_master_candidate_status_dict['File']))
     logging.info('Position: {0}'.format(new_master_candidate_status_dict['Position']))
     logging.info('Binlog_Do_DB: {0}'.format(new_master_candidate_status_dict['Binlog_Do_DB']))
     logging.info('Binlog_Ignore_DB: {0}'.format(new_master_candidate_status_dict['Binlog_Ignore_DB']))
-    logging.info('Executed_Gtid_Set: {0}'.format(new_master_candidate_status_dict['Executed_Gtid_Set'].replace('\n', '')))
+    #logging.info('Executed_Gtid_Set: {0}'.format(new_master_candidate_status_dict['Executed_Gtid_Set'].replace('\n', '')))
+    logging.info('gtid_binlog_pos: {0}'.format(show_master_gtid_list[0]))
+    logging.info('gtid_current_pos: {0}'.format(show_master_gtid_list[1]))
 
     # 第八步，改变同步复制源，从库change master to指向新的主库
     for slaves in other_slave:
@@ -941,8 +958,7 @@ if __name__ == '__main__':
 
     matchObj = re.search(r'^--conf=\S', sys.argv[1])
     if matchObj:
-        cnf_file_tmp = sys.argv[1].replace('--conf=', '')
-        filepath, cnf_file = os.path.split(cnf_file_tmp)
+        cnf_file = sys.argv[1].replace('--conf=', '')
     else:
         print("No match!! --conf=")
         sys.exit('--conf=<server config file> must be set.')
