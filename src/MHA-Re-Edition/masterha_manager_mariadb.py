@@ -958,7 +958,8 @@ if __name__ == '__main__':
 
     matchObj = re.search(r'^--conf=\S', sys.argv[1])
     if matchObj:
-        cnf_file = sys.argv[1].replace('--conf=', '')
+    	cnf_file_tmp = sys.argv[1].replace('--conf=', '')
+        filepath, cnf_file = os.path.split(cnf_file_tmp)
     else:
         print("No match!! --conf=")
         sys.exit('--conf=<server config file> must be set.')
