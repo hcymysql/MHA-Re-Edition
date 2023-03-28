@@ -535,7 +535,8 @@ def MasterMonitor(cnf_file):
                             new_master_candidate = [new_master_info[0][2], new_master_info[0][3]]
                             logging.info('新的主库候选人是 ==> : {0}:{1}'. format(new_master_candidate[0], new_master_candidate[1]))
                         else:
-                            new_master_info_sort = sorted(new_master_info, reverse=True)
+                            #new_master_info_sort = sorted(new_master_info, reverse=True)
+                            new_master_info_sort = sorted(new_master_info) # 选举GTID最新的候选主库
                             new_master_candidate_tmp = new_master_info_sort[0]
                             new_master_candidate = [new_master_candidate_tmp[2], new_master_candidate_tmp[3]]
                             logging.info('新的主库候选人是 ==> : {0}:{1}'. format(new_master_candidate[0], new_master_candidate[1]))
@@ -756,7 +757,8 @@ def Online_Switch(cnf_file):
             new_master_candidate = [new_master_info[0][2], new_master_info[0][3]]
             logging.info('新的主库候选人是 ==> : {0}:{1}'.format(new_master_candidate[0], new_master_candidate[1]))
         else:
-            new_master_info_sort = sorted(new_master_info, reverse=True)
+            #new_master_info_sort = sorted(new_master_info, reverse=True)
+            new_master_info_sort = sorted(new_master_info) # 选举GTID最新的候选主库
             new_master_candidate_tmp = new_master_info_sort[0]
             new_master_candidate = [new_master_candidate_tmp[2], new_master_candidate_tmp[3]]
             logging.info('新的主库候选人是 ==> : {0}:{1}'.format(new_master_candidate[0], new_master_candidate[1]))
