@@ -68,6 +68,7 @@ class MasterFailover(object):
         cursor = self._connection.cursor()
         try:
             cursor.execute('SET GLOBAL SUPER_READ_ONLY = 0')
+            cursor.execute('SET GLOBAL READ_ONLY = 0')
         except pymysql.Error as e:
             print("Error %d: %s" % (e.args[0], e.args[1]))
             return False
