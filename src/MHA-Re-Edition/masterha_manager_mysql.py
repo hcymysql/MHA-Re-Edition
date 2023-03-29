@@ -503,6 +503,7 @@ def MasterMonitor(cnf_file):
                     else:
                         logging.info('没有在配置文件里找到candidate_master=1参数，则以最新的Gtid作为故障切换后的新主库\n')
                         new_master_info = []
+                        new_master_info_gtid = []
                         for s in current_slave:
                             mysql_conn2 = MasterFailover(s[0], s[1], s[2], s[3])
                             slave_status_dict = mysql_conn2.get_slave_status()
@@ -515,7 +516,13 @@ def MasterMonitor(cnf_file):
                                     new_master_info = [i, s[0], s[1]]
                                 else:
                                     new_master_info.append([len(i), s[0], s[1]])
+                                    try:
+                                        uuid_gtid = int(i.split(':')[1].replace("-",""))
+                                        new_master_info_gtid.append([uuid_gtid, s[0], s[1]])
+                                    except:
+                                        pass
                         tmp_count = 0
+                        # 当i.count(0)包含0时，代表没有延迟，tmp_count的值为2代表两个从库都没有延迟；值为1代表1个从库没有延迟，值为0代表两个从库都有延迟。
                         for i in new_master_info:
                             count = i.count(0)
                             tmp_count = tmp_count + count
@@ -523,12 +530,17 @@ def MasterMonitor(cnf_file):
                             # 如果同步复制都执行完，则取配置文件里server最靠前的主机作为候选主库
                             new_master_candidate = [new_master_info[0][1], new_master_info[0][2]]
                             logging.info('新的主库候选人是 ==> : {0}:{1}'. format(new_master_candidate[0], new_master_candidate[1]))
-                        else:
-                            #new_master_info_sort = sorted(new_master_info, reverse=True)
-                            new_master_info_sort = sorted(new_master_info) # 选举GTID最新的候选主库
+                        elif tmp_count >= 1:
+                            new_master_info_sort = sorted(new_master_info)  # 选举GTID最新的候选主库
                             new_master_candidate_tmp = new_master_info_sort[0]
                             new_master_candidate = [new_master_candidate_tmp[1], new_master_candidate_tmp[2]]
-                            logging.info('新的主库候选人是 ==> : {0}:{1}'. format(new_master_candidate[0], new_master_candidate[1]))
+                            logging.info('新的主库候选人是 ==> : {0}:{1}'.format(new_master_candidate[0], new_master_candidate[1]))
+                        else:
+                            new_master_info_sort = sorted(new_master_info_gtid, reverse=True)  # 选举GTID最新的候选主库
+                            # print("new_master_info_sort: ",new_master_info_sort) # debug
+                            new_master_candidate_tmp = new_master_info_sort[0]
+                            new_master_candidate = [new_master_candidate_tmp[1], new_master_candidate_tmp[2]]
+                            logging.info('新的主库候选人是 ==> : {0}:{1}'.format(new_master_candidate[0], new_master_candidate[1]))
 
                     other_slave = new_master = []
                     for cs in current_slave:
@@ -723,29 +735,46 @@ def Online_Switch(cnf_file):
     else:
         logging.info('没有在配置文件里找到candidate_master=1参数，则以最新的Gtid作为故障切换后的新主库\n')
         new_master_info = []
+        new_master_info_gtid = []
         for s in current_slave:
             mysql_conn2 = MasterFailover(s[0], s[1], s[2], s[3])
             slave_status_dict = mysql_conn2.get_slave_status()
             master_gtid_executed = slave_status_dict['Retrieved_Gtid_Set'].replace('\n', '')
             slave_gtid_executed = slave_status_dict['Executed_Gtid_Set'].replace('\n', '')
             gtid_result = mysql_conn2.elect_new_master(master_gtid_executed, slave_gtid_executed)
+            #print("master_gtid_executed: ",master_gtid_executed)
+            #print("slave_gtid_executed: ",slave_gtid_executed)
+            #print("gtid_result:  ",gtid_result)
             for i in gtid_result:
                 if i is None:
                     i = 0
                     new_master_info = [i, s[0], s[1]]
                 else:
                     new_master_info.append([len(i), s[0], s[1]])
+                    try:
+                        uuid_gtid = int(i.split(':')[1].replace("-",""))
+                        #print("uuid_gtid:",uuid_gtid)
+                        new_master_info_gtid.append([uuid_gtid, s[0], s[1]])
+                    except:
+                        pass
         tmp_count = 0
+        #print("new_master_info:",new_master_info)
         for i in new_master_info:
             count = i.count(0)
             tmp_count = tmp_count + count
+        # 当i.count(0)包含0时，代表没有延迟，tmp_count的值为2代表两个从库都没有延迟；值为1代表1个从库没有延迟，值为0代表两个从库都有延迟。
         if tmp_count >= 2:
             # 如果同步复制都执行完，则取配置文件里server最靠前的主机作为候选主库
             new_master_candidate = [new_master_info[0][1], new_master_info[0][2]]
             logging.info('新的主库候选人是 ==> : {0}:{1}'.format(new_master_candidate[0], new_master_candidate[1]))
-        else:
-            #new_master_info_sort = sorted(new_master_info, reverse=True)
+        elif tmp_count >= 1:
             new_master_info_sort = sorted(new_master_info) # 选举GTID最新的候选主库
+            new_master_candidate_tmp = new_master_info_sort[0]
+            new_master_candidate = [new_master_candidate_tmp[1], new_master_candidate_tmp[2]]
+            logging.info('新的主库候选人是 ==> : {0}:{1}'.format(new_master_candidate[0], new_master_candidate[1]))
+        else:
+            new_master_info_sort = sorted(new_master_info_gtid, reverse=True) # 选举GTID最新的候选主库
+            #print("new_master_info_sort: ",new_master_info_sort) # debug
             new_master_candidate_tmp = new_master_info_sort[0]
             new_master_candidate = [new_master_candidate_tmp[1], new_master_candidate_tmp[2]]
             logging.info('新的主库候选人是 ==> : {0}:{1}'.format(new_master_candidate[0], new_master_candidate[1]))
