@@ -123,12 +123,17 @@ Description=MHA hh_phone Process Restart Script
 After=network.target
 [Service]
 User=root
-TimeoutStartSec=0
+TimeoutStartSec=10s
 Type=simple
-KillMode=none
+PIDFile=/tmp/daemon_hh_phone.cnf.pid
+KillMode=process
+WorkingDirectory=/data/MHA-Re-Edition-main
 ExecStart=/data/MHA-Re-Edition-main/masterha_manager_mysql --conf=/etc/mha/hh_phone.cnf start
-Restart=on-failure
-RestartSec=2
+Restart=on-abnormal
+RestartSec=5s
+LimitNOFILE=5555
+StartLimitInterval=60s
+StartLimitBurst=3
 [Install]
 WantedBy=multi-user.target
 ```
