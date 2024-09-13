@@ -1,6 +1,4 @@
 # MHA-Re-Edition 复刻版简介
-https://www.oschina.net/p/MHA-Re-Edition
-![image](https://raw.githubusercontent.com/hcymysql/MHA-Re-Edition/main/mha_chatgpt.png)
 
 由于MHA（mha4mysql-manager）工具2018年已经停止维护更新，且不支持Gtid复制模式，在原版基础上增补功能难度较大，固考虑将其重构。
 
