@@ -904,7 +904,7 @@ def Online_Switch(cnf_file):
 
     # 第十步，改变同步复制源，源主库change master to指向新的主库
     origin_status = mysql_conn_switch.slave_change_master_switch(new_master[0], new_master[1], new_master[2], new_master[3])
-    if change_status:
+    if origin_status:
         logging.info(
             '源主库 - {0}:{1} CHANGE MASTER TO 指向新主库 - {2}:{3} 成功.'.format(current_master[0], current_master[1], new_master[0],
                                                                        new_master[1]))
